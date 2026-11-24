@@ -1,287 +1,134 @@
-# Fitness Intelligence Studio
+# 🏋️ Fitness Intelligence Studio
 
-A unified, multi-app fitness intelligence suite made of three independently runnable Streamlit projects:
+An end-to-end, cloud-ready fitness intelligence suite that combines unsupervised machine learning, sports-science physiology, and personalized program generation. 
 
-1. **Fitness Hub** — landing page and cross-app member handoff
-2. **Gym Member Segmentation & Clustering** — unsupervised persona discovery
-3. **Personalized Workout & Nutrition Recommender** — assessment-to-program generator
+The studio consists of two powerful applications integrated into a single Streamlit website:
+1. **Member Intelligence (Segmentation & Clustering):** Discovers actionable fitness personas from gym data using a CRISP-DM pipeline.
+2. **Personal Training (Workout & Nutrition Recommender):** Turns a 3-step assessment into a downloadable training and nutrition plan.
 
-The three project folders must remain **siblings**. Each app can still be run on its own.
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3%2B-orange)
+![Streamlit](https://img.shields.io/badge/Streamlit-app-red)
+![Plotly](https://img.shields.io/badge/Plotly-visualisation-purple)
+![fpdf2](https://img.shields.io/badge/PDF-fpdf2-purple)
 
 ---
 
-## Repository layout
+## 🚀 Live Deployment (Cloud Edition)
+
+This repository is optimized for **Streamlit Community Cloud**, allowing visitors to access the full suite via a single public URL with zero setup.
+
+### How to Deploy
+1. Sign in to [Streamlit Community Cloud](https://share.streamlit.io/) using your GitHub account.
+2. Click **Create app** and select this repository.
+3. Set the **Main file path** to `streamlit_app.py`.
+4. (Optional) Under Advanced Settings, choose Python 3.12 or 3.13.
+5. Deploy. No API keys or secrets are required.
+
+*Note: The Cloud Edition uses Streamlit's `session_state` for cross-app data handoff, ensuring privacy and eliminating the need for local file sharing.*
+
+---
+
+## 💻 Local Development (Optional)
+
+To run the unified app locally:
+
+```bash
+python -m pip install -r requirements.txt
+python -m streamlit run streamlit_app.py
+```
+
+*(Legacy Note: Older versions of this repository relied on running three separate apps on ports 8500, 8501, and 8502. The current `streamlit_app.py` entrypoint replaces this multi-port architecture with a unified single-server experience.)*
+
+---
+
+## 🧠 Application Overview
+
+### 1. Member Intelligence (Segmentation & Clustering)
+A CRISP-DM-structured pipeline that proves clustering is meaningful, not just a pretty scatter plot.
+
+* **Datasets:** Switch between **Real Kaggle Data** (973 rows of honest, continuous gym sessions) and **Synthetic Data** (973 rows generated with 10 known personas for ground-truth validation).
+* **Physiological Feature Engineering:** Raw BPM is age-confounded, so the app engineers `HRR_pct` (% heart-rate reserve), `Kcal_per_min` (calorie burn rate), and `Weekly_Volume_hrs` (training load).
+* **Modeling Bake-off:** Compares 9 algorithms (K-Means, Agglomerative, GMM, DBSCAN, HDBSCAN, etc.) using Silhouette, Davies-Bouldin, Calinski-Harabasz, and Adjusted Rand Index (ARI).
+* **Key Finding:** Multicollinearity is the silent killer of clustering. De-duplicating features (e.g., dropping `Weight` for `BMI`) and using `HRR_pct` lifted persona recovery from ARI 0.59 to 0.74 on synthetic data.
+* **Auto-Named Personas:** Discovers and names 14 archetypes (e.g., *HIIT Warrior, Weekend Warrior, Plateau Veteran*) with recommended business actions.
+
+### 2. Personal Training (Workout & Nutrition Recommender)
+A 3-step wizard that outputs a complete, downloadable program.
+
+* **Persona Assignment:** Uses a K-Means model (`k=4`) trained on six user-provided features (age, BMI, body fat, frequency, experience, session length).
+* **Calorie Prediction:** Blends a Gradient-Boosted Regressor (R² = 0.997, MAE = 12.4 kcal) with the MET equation for robust per-session calorie estimates.
+* **Physiology Engine:** Calculates Mifflin-St Jeor BMR, activity-adjusted TDEE, Tanaka HRmax (208 - 0.7×age), Karvonen HR zones, and WHO waist-to-hip risk categories.
+* **Actionable Output:** Generates a weekly workout split (Full Body → PPL / Upper-Lower), nutrition macros, hydration targets, and a downloadable PDF report.
+
+---
+
+## 🔗 Cross-App Member Handoff
+
+You can seamlessly transfer a dataset member from **Member Intelligence** to **Personal Training**:
+1. Go to **Member Intelligence → Deployment**.
+2. Select a real dataset member and click **Connect to Personal Training**.
+3. Review and approve the measurements.
+4. Click **Prepare profile transfer → Continue**.
+5. The training app will automatically open with the member's valid, in-range metrics prefilled.
+
+**Rules & Privacy:**
+* Only supported, in-range measurements are prefilled. Out-of-range/missing values remain editable defaults.
+* Goals, body-focus, and availability are **never inferred**.
+* Personas are recalculated in the training app; cluster IDs are model-specific.
+* Transfers are handled via session state (no personal data is saved in URLs).
+
+---
+
+## 🗂️ Project Structure
 
 ```text
 fitness-studio/
-├── fitness-hub/
-│   ├── app.py
-│   ├── bridge.py
-│   ├── theme.py
-│   ├── README.md
-│   └── .streamlit/
-├── gym-member-segmentation/
-│   ├── app.py
-│   ├── bridge.py
-│   ├── generate_data.py
-│   ├── theme.py
-│   ├── requirements.txt
-│   ├── README.md
-│   ├── data/
-│   └── .streamlit/
-└── workout-recommender/
-    ├── workout_recommender_app.py
-    ├── recommendation_engine.py
-    ├── exercise_library.py
-    ├── pdf_report.py
-    ├── bridge.py
-    ├── theme.py
-    ├── requirements.txt
-    ├── README.md
-    ├── data/
-    └── .streamlit/
+├── streamlit_app.py        # Unified entrypoint and navigation
+├── bridge.py               # Cross-page profile handoff (session state)
+├── theme.py                # Evergreen/Slate design system
+├── requirements.txt
+├── .streamlit/
+│   └── config.toml         # Native widget styling
+├── pages/                  # Streamlit multipage routing
+└── projects/
+    ├── segmentation/       # CRISP-DM ML Pipeline
+    │   ├── app.py
+    │   └── data/           # Real & Synthetic CSVs
+    └── training/           # Recommender Engine
+        ├── workout_recommender_app.py
+        ├── recommendation_engine.py
+        ├── exercise_library.py
+        ├── pdf_report.py
+        └── data/           # Kaggle CSVs
 ```
 
 ---
 
-## Quick start
+## 🎨 Design System (Evergreen/Slate)
 
-### Prerequisites
-
-- Python 3.10+
-- Install dependencies from each app’s `requirements.txt` where present:
-
-```bash
-cd gym-member-segmentation
-python -m pip install -r requirements.txt
-
-cd ../workout-recommender
-python -m pip install -r requirements.txt
-```
-
-### Run the three apps
-
-Run each command **from its own project directory**, in a separate terminal. Do not run them from the repository root.
-
-| App | Directory | Command | Port |
-|---|---|---|---|
-| Fitness Hub | `fitness-hub` | `python -m streamlit run app.py --server.port 8500 --server.address 0.0.0.0` | `8500` |
-| Gym Member Segmentation | `gym-member-segmentation` | `python -m streamlit run app.py --server.port 8501 --server.address 0.0.0.0` | `8501` |
-| Workout Recommender | `workout-recommender` | `python -m streamlit run workout_recommender_app.py --server.port 8502 --server.address 0.0.0.0` | `8502` |
-
-Then open:
-
-```text
-http://localhost:8500
-```
-
-The landing app links to the other two services. Keep all three terminals running.
-
-### Windows PowerShell example
-
-```powershell
-cd "E:\data science lab\fitness studio\fitness-hub"
-python -m streamlit run app.py --server.port 8500 --server.address 0.0.0.0
-```
-
-```powershell
-cd "E:\data science lab\fitness studio\gym-member-segmentation"
-python -m streamlit run app.py --server.port 8501 --server.address 0.0.0.0
-```
-
-```powershell
-cd "E:\data science lab\fitness studio\workout-recommender"
-python -m streamlit run workout_recommender_app.py --server.port 8502 --server.address 0.0.0.0
-```
+The app uses a unified, custom theme across all pages and PDF reports:
+* **Background:** `#0B1220`
+* **Surface:** `#141F30`
+* **Mint (Accent):** `#5EE0B5`
+* **Soft Blue:** `#8AB4F8`
+* **Primary Text:** `#F1F5F9`
+* **Muted Text:** `#ACBBD0`
 
 ---
 
-## What each app does
+## ⚖️ Honesty & Safety Disclaimer
 
-### 1. Fitness Hub
-
-- Unified landing page for the suite.
-- Evergreen/Slate visual theme.
-- Entry point for the cross-app member handoff.
-- Explicit flow:
-  **Project 1 → Deployment → Connect to Personal Training → select a dataset row → review measurements and approve → Prepare profile transfer → Continue**
-- Only supported, in-range measurements are prefilled.
-- Out-of-range or missing values remain editable defaults.
-- Goals, body-focus, and availability are **never inferred**.
-- Persona is recomputed by Project 2; cluster labels are model-specific.
-
-### 2. Gym Member Segmentation & Clustering
-
-A CRISP-DM-structured unsupervised-learning project that turns gym-session data into actionable fitness personas.
-
-Highlights:
-
-- Switchable datasets:
-  - **Real Kaggle data** — 973 gym members, continuous behavioural data.
-  - **Synthetic 10-persona data** — 973 rows with known ground truth for validation.
-- Physiological feature engineering:
-  - `HRR_pct` — percentage of heart-rate reserve
-  - `Kcal_per_min` — calorie burn rate
-  - `Weekly_Volume_hrs` — weekly training load
-- Multicollinearity-aware feature selection, log transforms, optional IQR clipping, and multiple scalers.
-- Nine clustering algorithms compared head-to-head:
-  K-Means, MiniBatch K-Means, Agglomerative Ward, Agglomerative complete, Gaussian Mixture, Spectral, BIRCH, DBSCAN, HDBSCAN.
-- Metrics: Silhouette, Davies–Bouldin, Calinski–Harabasz, ARI when ground truth exists, bootstrap stability.
-- Auto-named personas with recommended business actions.
-- Live scoring for new members and downloadable segmented CSV.
-- Synthetic data defaults to `k = 10`; real data defaults to `k = 5` with an explicit trade-off discussion.
-
-### 3. Personalized Workout & Nutrition Recommender
-
-A 3-step assessment that produces a complete, downloadable training and nutrition program.
-
-Pipeline:
-
-```text
-Assessment (3 steps)
-→ K-Means persona (k=4, trained on real data)
-→ Weekly split + exercises (rule engine × experience level)
-→ Per-session calorie estimate (GBR ⊕ MET blend)
-→ BMR/TDEE + macros + hydration + recovery
-→ PDF download
-```
-
-Includes:
-
-- Persona card and percentile radar chart.
-- Weekly workout plan with exercises, sets, reps, rest, equipment, coaching cues, warm-up, cool-down, finishers, calorie estimates, and target HR zones.
-- Nutrition and recovery plan with BMR, TDEE, goal-adjusted calories, macro splits, hydration, meal ideas, sleep guidance, and deload advice.
-- Progress projections with honest caveats.
-- “Show the math” transparency panel and medical disclaimer.
-- Downloadable PDF report.
+* **Not Medical Advice:** All training and nutrition estimates are population-level approximations and educational portfolio demonstrations. They are not clinical advice.
+* **Model Transparency:** The calorie regressor's near-perfect R² (~0.99) reflects the Kaggle dataset being near-deterministic (calories are essentially a closed-form function of HR × duration). The app discloses this and treats numbers as *relative intensity guidance*, not lab values.
+* **Cloud Limitations:** Free Streamlit hosting can sleep or have resource limits. No uptime guarantee is implied.
 
 ---
 
-## Cross-app member handoff
-
-The handoff is designed for a same-machine development workflow.
-
-- Transfers are private random-token links.
-- Links are valid for **30 minutes**.
-- JSON records are stored in a sibling `.fitness-transfers` directory.
-- Expired records are purged on the next export.
-- Persona is recomputed by the segmentation app; labels are model-specific.
-- Goals, body-focus, and availability are not inferred during transfer.
-
-### Important security note
-
-This is a **development handoff**, not a production authenticated service.
-
-Do **not** expose it publicly without:
-
-- authentication,
-- TLS,
-- scheduled cleanup,
-- and a proper shared storage design.
+## 📊 Data Source
+* **Real Data:** [Kaggle Gym Members Exercise Dataset](https://www.kaggle.com/datasets/valakhorasani/gym-members-exercise-dataset)
+* **Synthetic Data:** Generated via `generate_data.py` with modelled heart-rate physiology.
 
 ---
 
-## Configuration
-
-| Environment variable | Purpose |
-|---|---|
-| `FITNESS_TRANSFER_DIR` | Custom shared transfer store. Set identically on all apps. |
-| `FITNESS_URL_8500` | Override navigation URL for Fitness Hub. |
-| `FITNESS_URL_8501` | Override navigation URL for Gym Member Segmentation. |
-| `FITNESS_URL_8502` | Override navigation URL for Workout Recommender. |
-
-Default local links use ports `8500`, `8501`, and `8502`. Arena preview hosts are detected automatically.
-
-Use URL overrides if you run the apps on different Windows ports or separate deployment hosts.
-
----
-
-## Data
-
-| Dataset | Rows | Description |
-|---|---:|---|
-| Real — Kaggle Gym Members Exercise Dataset | 973 | Demographics, heart-rate metrics, session behaviour, and body composition. Continuous data with weak natural clusters. |
-| Synthetic — 10 known personas | 973 | Generated by `generate_data.py`. Ground truth is retained for ARI validation. |
-
-Generate the synthetic dataset:
-
-```bash
-cd gym-member-segmentation
-python generate_data.py
-```
-
----
-
-## Theme and design system
-
-The landing app uses the Evergreen/Slate palette:
-
-- Background: `#0B1220`
-- Surface: `#141F30`
-- Mint: `#5EE0B5`
-- Soft blue: `#8AB4F8`
-- Primary text: `#F1F5F9`
-- Muted text: `#ACBBD0`
-
-Native Streamlit widgets are styled through `.streamlit/config.toml`. Charts and PDF accents match the palette.
-
----
-
-## Tech stack
-
-- Python
-- pandas
-- NumPy
-- scikit-learn
-- Plotly
-- Streamlit
-- fpdf2
-- PDF report generation
-
----
-
-## Troubleshooting
-
-### `Error: Invalid value: File does not exist: app.py`
-
-This happens when you run Streamlit from the repository root instead of the app directory.
-
-Incorrect:
-
-```bash
-cd "E:\data science lab\fitness studio"
-streamlit run app.py
-```
-
-Correct:
-
-```bash
-cd "E:\data science lab\fitness studio\gym-member-segmentation"
-python -m streamlit run app.py --server.port 8501 --server.address 0.0.0.0
-```
-
-### Port already in use
-
-Use the URL override variables or change the port flags consistently.
-
-### Handoff link does not work
-
-Make sure:
-
-- all three apps are running,
-- ports match the configured URLs,
-- and `FITNESS_TRANSFER_DIR` is identical on all apps if you use a custom store.
-
-### Dependencies missing
-
-Install from the relevant app directory:
-
-```bash
-python -m pip install -r requirements.txt
-```
-
----
-
-## Status
-
-This repository is a portfolio-grade, local development suite. It is suitable for demos, experimentation, and same-machine workflows. For production use, add authentication, TLS, persistent storage, scheduled cleanup, and proper deployment isolation.
+*Created by [Fotros](https://github.com/fotroslab) · Fitness Intelligence Studio
